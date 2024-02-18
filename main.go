@@ -13,6 +13,14 @@ type CreateRequest struct {
 	Description string `json:"description"`
 }
 
+type UpdateRequest struct {
+	Title string `json:"title"`
+	Description string `json:"description"`
+}
+type CheckRequest struct {
+	Done bool `json:"done"`
+}
+
 type TodoResponse struct {
 	Id int `json:"id"`
 	Title string `json:"title"`
@@ -67,8 +75,6 @@ func main() {
 	})
 
 
-
-
 	e.POST("/todos", func(ctx echo.Context) error {
 
 		var request CreateRequest
@@ -78,13 +84,72 @@ func main() {
 			"INSERT INTO todos (title, description, done) VALUES (?,?, 0)",
 			request.Title, request.Description,
 		)
-s
+
 		if err != nil {
 			return ctx.String(http.StatusInternalServerError, err.Error())
 		}
 
 		return ctx.String(http.StatusOK, "OK")
 	})
+
+	e.DELETE("/todos/:id", func(ctx echo.Context) error {
+		id := ctx.Param("id")
+
+		_, err := db.Exec("DELETE FROM todos WHERE id = ?", id)
+
+		if err != nil {
+			return ctx.String(http.StatusInternalServerError, err.Error())
+		}
+
+		return ctx.String(http.StatusOK, "OK")
+	})
+
+	e.PATCH("/todos/:id", func(ctx echo.Context) error {
+		id := ctx.Param("id")
+
+
+		var request CheckRequest
+		json.NewDecoder(ctx.Request( ).Body).Decode(&request)
+
+		var doneInt int
+		if request.Done == true {
+			doneInt = 1
+		} 
+
+		_, err := db.Exec(
+			"UPDATE todos SET done = ?, WHERE id = ?",
+			doneInt, id,
+		)
+
+		if err != nil {
+			return ctx.String(http.StatusInternalServerError, err.Error())
+		}
+
+		return ctx.String(http.StatusOK, "OK")
+	})
+
+
+	// Checklist
+	e.PATCH("/todos/:id/check", func(ctx echo.Context) error {
+		id := ctx.Param("id")
+
+
+		var request UpdateRequest
+		json.NewDecoder(ctx.Request( ).Body).Decode(&request)
+
+		_, err := db.Exec(
+			"UPDATE todos SET title = ?, description = ?, WHERE id = ?",
+			request.Title, request.Description, id,
+		)
+
+		if err != nil {
+			return ctx.String(http.StatusInternalServerError, err.Error())
+		}
+
+		return ctx.String(http.StatusOK, "OK")
+	})
+
+
 
 
 
